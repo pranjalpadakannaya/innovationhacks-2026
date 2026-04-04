@@ -571,12 +571,12 @@ def _run_log(logs_dir: Path, keep: int = 3):
 
 
 def main():
-    with _run_log(Path(".logs")):
+    with _run_log(Path("../.logs")):
         _run()
 
 
 def _run():
-    input_dir = Path("policy_data")
+    input_dir = Path("../../policy_data")
     sections_dir = Path("outputs/sections")
     records_dir = Path("outputs/policy_records")
     sections_dir.mkdir(parents=True, exist_ok=True)
@@ -633,10 +633,14 @@ def _run():
             except anthropic.RateLimitError:
                 if attempt < max_attempts - 1:
                     wait = 60 * (attempt + 1)
-                    print(f"  [rate limit] waiting {wait}s before retry {attempt + 1}/{max_attempts}...")
+                    print(
+                        f"  [rate limit] waiting {wait}s before retry {attempt + 1}/{max_attempts}..."
+                    )
                     time.sleep(wait)
                 else:
-                    print(f"  [error] LLM extraction failed after {max_attempts} attempts: rate limit exhausted")
+                    print(
+                        f"  [error] LLM extraction failed after {max_attempts} attempts: rate limit exhausted"
+                    )
             except Exception as e:
                 print(f"  [error] LLM extraction failed: {e}")
                 break
