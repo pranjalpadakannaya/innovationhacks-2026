@@ -1,6 +1,8 @@
 import json
 import statistics
+import time
 from pathlib import Path
+import anthropic
 
 import pymupdf
 
@@ -118,36 +120,36 @@ def extract_tables(pdf_path: str) -> list[dict]:
         return []
 
 
-def ocr_fallback(pdf_path: str) -> list[dict]:
-    """
-    Last resort for scanned PDFs where both PyMuPDF and pdfplumber return near-zero text.
-    Requires: pip install pdf2image pytesseract  (+ system Tesseract binary)
-    """
-    try:
-        import pytesseract
-        from pdf2image import convert_from_path
-    except ImportError:
-        raise RuntimeError(
-            "OCR dependencies missing. Install with: pip install pdf2image pytesseract\n"
-            "Also ensure the Tesseract binary is installed on your system."
-        )
-
-    images = convert_from_path(pdf_path, dpi=300)
-    blocks = []
-    for page_num, image in enumerate(images):
-        text = pytesseract.image_to_string(image).strip()
-        if text:
-            blocks.append(
-                {
-                    "page_num": page_num + 1,
-                    "bbox": (0, 0, image.width, image.height),
-                    "x0": 0,
-                    "text": text,
-                    "font_size": 10.0,  # unknown from OCR
-                    "is_bold": False,  # unknown from OCR
-                }
-            )
-    return blocks
+# def ocr_fallback(pdf_path: str) -> list[dict]:
+#     """
+#     Last resort for scanned PDFs where both PyMuPDF and pdfplumber return near-zero text.
+#     Requires: pip install pdf2image pytesseract  (+ system Tesseract binary)
+#     """
+#     try:
+#         import pytesseract
+#         from pdf2image import convert_from_path
+#     except ImportError:
+#         raise RuntimeError(
+#             "OCR dependencies missing. Install with: pip install pdf2image pytesseract\n"
+#             "Also ensure the Tesseract binary is installed on your system."
+#         )
+#
+#     images = convert_from_path(pdf_path, dpi=300)
+#     blocks = []
+#     for page_num, image in enumerate(images):
+#         text = pytesseract.image_to_string(image).strip()
+#         if text:
+#             blocks.append(
+#                 {
+#                     "page_num": page_num + 1,
+#                     "bbox": (0, 0, image.width, image.height),
+#                     "x0": 0,
+#                     "text": text,
+#                     "font_size": 10.0,  # unknown from OCR
+#                     "is_bold": False,  # unknown from OCR
+#                 }
+#             )
+#     return blocks
 
 
 _LOW_YIELD_THRESHOLD = 50
@@ -383,38 +385,55 @@ def detect_drug_boundaries(blocks: list[dict]) -> list[dict]:
 
 def detect_headings(blocks: list[dict]) -> list[dict]:
     """
-    Classify each block as heading level (1, 2, 3) or None
+    Classify blocks as headings using absolute left-margin thresholding.
     """
     body_sizes = [
         b["font_size"] for b in blocks if not b["is_bold"] and b["text"].strip()
     ]
     body_median = statistics.median(body_sizes) if body_sizes else 10.0
 
-    candidate_x0s = [
-        b["x0"] for b in blocks if b["is_bold"] and len(b["text"].strip()) < 120
-    ]
-    x0_sorted = sorted(set(round(x) for x in candidate_x0s))
+    # Estimate page width from the rightmost x1 coordinate seen across all blocks
+    page_width = max((b["bbox"][2] for b in blocks if b.get("bbox")), default=612.0)
+    center_guard = page_width * 0.45  # blocks right of this are centered/right-aligned
 
-    def x0_level(x0: float) -> int:
-        if not x0_sorted:
-            return 2
-        percentile = x0_sorted.index(
-            min(x0_sorted, key=lambda x: abs(x - round(x0)))
-        ) / max(len(x0_sorted) - 1, 1)
-        if percentile < 0.33:
-            return 1
-        elif percentile < 0.66:
-            return 2
-        else:
-            return 3
+    # Candidate pool: bold, short, and not right-of-center
+    candidates = [
+        b
+        for b in blocks
+        if b["is_bold"]
+        and b["text"].strip()
+        and len(b["text"].strip()) < 120
+        and b["x0"] < center_guard
+    ]
+
+    if not candidates:
+        for b in blocks:
+            b["heading_level"] = None
+        return blocks
+
+    sorted_x0s = sorted(b["x0"] for b in candidates)
+    left_margin = sorted_x0s[max(0, len(sorted_x0s) // 10)]
+
+    HEADING_MAX_INDENT = 60
 
     for block in blocks:
         text = block["text"].strip()
-        if not block["is_bold"] or len(text) > 120 or not text:
+
+        if (
+            not block["is_bold"]
+            or not text
+            or len(text) > 120
+            or block["x0"] >= center_guard  # centered/right-aligned
+            or block["x0"] > left_margin + HEADING_MAX_INDENT  # too indented
+        ):
             block["heading_level"] = None
             continue
+
         size_ratio = block["font_size"] / body_median
-        block["heading_level"] = 1 if size_ratio >= 1.15 else x0_level(block["x0"])
+        if size_ratio >= 1.15 or block["x0"] <= left_margin + 5:
+            block["heading_level"] = 1
+        else:
+            block["heading_level"] = 2
 
     return blocks
 
@@ -445,45 +464,74 @@ def segment_sections(blocks: list[dict]) -> list[dict]:
 
 def _prune_sections(sections: list[dict]) -> list[dict]:
     """
-    Post-segmentation cleanup in two passes.
+    Drop sections with negligible content (page numbers, footers, copyright lines)
     """
-    merged: list[dict] = []
-
-    for section in sections:
-        if len(section["heading"].strip()) < 6:
-            if merged and section["content"].strip():
-                merged[-1]["content"] = (
-                    merged[-1]["content"] + "\n" + section["content"]
-                ).strip()
-        else:
-            merged.append(section)
-
-    return [s for s in merged if len(s["content"].strip()) > 30]
+    return [s for s in sections if len(s["content"].strip()) > 50]
 
 
-# import anthropic
-#
-# POLICY_RECORD_SCHEMA = { ... }  # see earlier version of this file
-#
-# def extract_policy(section_text: str) -> dict:
-#     client = anthropic.Anthropic()
-#     response = client.messages.create(
-#         model="claude-opus-4-6",
-#         max_tokens=4096,
-#         tools=[{"name": "extract_policy_record", ..., "input_schema": POLICY_RECORD_SCHEMA}],
-#         tool_choice={"type": "tool", "name": "extract_policy_record"},
-#         messages=[{"role": "user", "content": f"Extract policy data:\n{section_text}"}],
-#     )
-#     for block in response.content:
-#         if block.type == "tool_use" and block.name == "extract_policy_record":
-#             return block.input
-#     raise ValueError("LLM did not return a tool_use block")
+# ── Step 4: LLM extraction ─────────────────────────────────────────────────────
+
+from schema import POLICY_RECORD_SCHEMA
+
+
+def _render_sections(sections: list[dict]) -> str:
+    """Format segmented sections into a single prompt-ready string."""
+    parts = []
+    for s in sections:
+        parts.append(f"\n[SECTION: {s['heading']} | page {s['page']}]\n{s['content']}")
+    return "\n".join(parts)
+
+
+def extract_policy_record(sections: list[dict], source_filename: str) -> dict:
+    """
+    Send pre-segmented document text to Claude and return a structured
+    PolicyRecord conforming to schema.POLICY_RECORD_SCHEMA.
+
+    model: claude-haiku-4-5-20251001
+    """
+    client = anthropic.Anthropic()
+
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=4096,
+        tools=[
+            {
+                "name": "extract_policy_record",
+                "description": (
+                    "Extract structured prior authorization policy data from a health plan document. "
+                    "Capture every covered indication and all PA criteria exactly as stated. "
+                    "Do NOT hallucinate. Omit fields absent from the document rather than guessing."
+                ),
+                "input_schema": POLICY_RECORD_SCHEMA,
+            }
+        ],
+        tool_choice={"type": "tool", "name": "extract_policy_record"},
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"Extract structured policy data from this health plan PA policy document: {source_filename}\n\n"
+                    "The document has been pre-segmented — each [SECTION] block contains raw text "
+                    "from that portion of the document.\n\n"
+                    f"{_render_sections(sections)}"
+                ),
+            }
+        ],
+    )
+
+    for block in response.content:
+        if block.type == "tool_use" and block.name == "extract_policy_record":
+            return block.input
+
+    raise ValueError("LLM did not return a tool_use block")
 
 
 def main():
     input_dir = Path("policy_data")
-    output_dir = Path("outputs/rough_json")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    sections_dir = Path("outputs/sections")
+    records_dir = Path("outputs/policy_records")
+    sections_dir.mkdir(parents=True, exist_ok=True)
+    records_dir.mkdir(parents=True, exist_ok=True)
 
     for pdf_file in sorted(input_dir.glob("*.pdf")):
         print(f"\nProcessing: {pdf_file.name}")
@@ -508,18 +556,37 @@ def main():
         else:
             all_sections = segment_sections(blocks)
 
-        output = {
-            "source": pdf_file.name,
-            "document_format": doc_format,
-            "tables": tables,
-            "sections": all_sections,
-        }
+        # Write raw segmentation output for inspection
+        sections_out = sections_dir / f"{pdf_file.stem}.json"
+        with open(sections_out, "w") as f:
+            json.dump(
+                {
+                    "source": pdf_file.name,
+                    "document_format": doc_format,
+                    "tables": tables,
+                    "sections": all_sections,
+                },
+                f,
+                indent=2,
+            )
+        print(f"  → {len(all_sections)} sections → {sections_out.name}")
 
-        out_file = output_dir / f"{pdf_file.stem}.json"
-        with open(out_file, "w") as f:
-            json.dump(output, f, indent=2)
-
-        print(f"  → {len(all_sections)} sections written to {out_file.name}")
+        # LLM extraction — retry with backoff on rate limit
+        for attempt in range(3):
+            try:
+                record = extract_policy_record(all_sections, pdf_file.name)
+                record_out = records_dir / f"{pdf_file.stem}.json"
+                with open(record_out, "w") as f:
+                    json.dump(record, f, indent=2)
+                print(f"  → policy record → {record_out.name}")
+                break
+            except anthropic.RateLimitError:
+                wait = 60 * (attempt + 1)
+                print(f"  [rate limit] waiting {wait}s before retry {attempt + 1}/3...")
+                time.sleep(wait)
+            except Exception as e:
+                print(f"  [error] LLM extraction failed: {e}")
+                break
 
     # Once API key is available, wire in the LLM step per doc:
     #

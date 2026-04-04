@@ -1,0 +1,28 @@
+{
+  "payer": {
+    "name": "Florida Blue",
+    "policy_title": "Bevacizumab (Avastin), bevacizumab-awwb (Mvasi), bevacizumab-bvzr (Zirabev), and bevacizumab-maly (Alymsys), bevacizumab-nwgd (Jobevne), bevacizumab-tnjn (Avzivi), and bevacizumab-adcd (Vegzelma) Injection",
+    "policy_id": "MCG 09-J9035",
+    "effective_date": "01/01/26",
+    "revision_date": "01/01/26"
+  },
+  "drug": {
+    "generic_name": "Bevacizumab",
+    "brand_name": "Avastin",
+    "drug_class": "Vascular Endothelial Growth Factor (VEGF) Inhibitor; Humanized Monoclonal Antibody",
+    "route_of_administration": "Intravenous infusion",
+    "benefit_type": "medical",
+    "j_codes": [
+      "J9035"
+    ],
+    "hcpcs_codes": [
+      "J9035",
+      "Q5107",
+      "Q5118",
+      "Q5126",
+      "Q5129",
+      "Q5160"
+    ],
+    "limitations_of_use": "Dosage not to exceed 10 mg/kg every 2 weeks OR 15 mg/kg every 3 weeks"
+  }
+}

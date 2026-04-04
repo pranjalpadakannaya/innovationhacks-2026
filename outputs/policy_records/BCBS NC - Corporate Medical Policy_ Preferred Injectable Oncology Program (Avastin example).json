@@ -1,0 +1,23 @@
+{
+  "payer": {
+    "name": "Blue Cross NC",
+    "policy_title": "Corporate Medical Policy: Preferred Injectable Oncology Program",
+    "policy_id": "<UNKNOWN>",
+    "effective_date": "January 2026",
+    "revision_date": "January 2026"
+  },
+  "drug": {
+    "brand_name": "Avastin",
+    "generic_name": "bevacizumab",
+    "drug_class": "VEGF inhibitor (Vascular Endothelial Growth Factor inhibitor)",
+    "route_of_administration": "intravenous infusion",
+    "benefit_type": "medical",
+    "j_codes": [
+      "J9035"
+    ],
+    "hcpcs_codes": [
+      "J9035"
+    ],
+    "limitations_of_use": "Not for adjuvant treatment of colon cancer"
+  }
+}
