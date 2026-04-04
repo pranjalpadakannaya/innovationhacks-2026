@@ -1,28 +1,34 @@
 {
-  "payer": {
-    "name": "Cigna",
-    "policy_title": "Rituximab Intravenous Products for Non-Oncology Indications",
-    "policy_id": "IP0319",
-    "effective_date": "2026-02-01",
-    "revision_date": "2026-02-01"
+  "confidence_scores": {
+    "drug_identification": 1.0,
+    "overall": 1.0,
+    "pa_criteria_completeness": 1.0,
+    "review_flags": ""
   },
   "drug": {
-    "brand_name": "Rituxan, Riabni, Ruxience, Truxima",
-    "generic_name": "rituximab intravenous infusion",
+    "benefit_type": "medical",
+    "brand_name": [
+      "Riabni",
+      "Rituxan",
+      "Ruxience",
+      "Truxima"
+    ],
     "drug_class": "CD20-directed cytolytic antibody",
-    "route_of_administration": "intravenous infusion",
-    "benefit_type": "pharmacy",
+    "generic_name": "rituximab",
+    "hcpcs_codes": [
+      "J9312",
+      "Q5115",
+      "Q5119",
+      "Q5123"
+    ],
     "j_codes": [
       "J9312",
       "Q5115",
       "Q5119",
       "Q5123"
     ],
-    "hcpcs_codes": [
-      "J9312",
-      "Q5115",
-      "Q5119",
-      "Q5123"
-    ]
-  }
+    "limitations_of_use": "None stated",
+    "route_of_administration": "intravenous"
+  },
+  "exclusions": []
 }

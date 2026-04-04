@@ -1,23 +1,291 @@
 {
+  "confidence_scores": {
+    "review_flags": "<UNKNOWN>",
+    "overall": 0.9,
+    "drug_identification": 0.9,
+    "pa_criteria_completeness": 0.9
+  },
   "payer": {
     "name": "Blue Cross NC",
-    "policy_title": "Corporate Medical Policy: Preferred Injectable Oncology Program",
     "policy_id": "<UNKNOWN>",
-    "effective_date": "January 2026",
-    "revision_date": "January 2026"
+    "policy_title": "Preferred Injectable Oncology Program (Avastin example)",
+    "effective_date": "2026-01-01",
+    "revision_date": "2026-01-01"
   },
   "drug": {
     "brand_name": "Avastin",
     "generic_name": "bevacizumab",
-    "drug_class": "VEGF inhibitor (Vascular Endothelial Growth Factor inhibitor)",
-    "route_of_administration": "intravenous infusion",
     "benefit_type": "medical",
-    "j_codes": [
-      "J9035"
-    ],
+    "drug_class": "vascular endothelial growth factor (VEGF) inhibitor",
+    "route_of_administration": "intravenous infusion",
     "hcpcs_codes": [
       "J9035"
     ],
-    "limitations_of_use": "Not for adjuvant treatment of colon cancer"
-  }
+    "j_codes": [
+      "J9035"
+    ]
+  },
+  "indications": [
+    {
+      "name": "Metastatic colorectal cancer",
+      "pa_required": true,
+      "icd10_codes": [
+        "<UNKNOWN>"
+      ],
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with intravenous fluorouracil-based chemotherapy for first- or second-line treatment",
+            "logic_operator": "AND"
+          },
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with fluoropyrimidine-irinotecan- or fluoropyrimidine-oxaliplatin-based chemotherapy for second-line treatment in patients who have progressed on a first-line bevacizumab product-containing regimen",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "clinical_response",
+            "description": "The patient has continued clinical benefit while receiving the requested agent as demonstrated by tumor response or lack of disease progression, and an acceptable toxicity profile",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "step_therapy_required": false,
+      "limitations_of_use": "Not for adjuvant treatment of colon cancer"
+    },
+    {
+      "name": "Unresectable, locally advanced, recurrent or metastatic non-squamous non-small cell lung cancer",
+      "pa_required": true,
+      "icd10_codes": [
+        "<UNKNOWN>"
+      ],
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with carboplatin and paclitaxel for first-line treatment",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "clinical_response",
+            "description": "The patient has continued clinical benefit while receiving the requested agent as demonstrated by tumor response or lack of disease progression, and an acceptable toxicity profile",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "step_therapy_required": false
+    },
+    {
+      "name": "Recurrent glioblastoma",
+      "pa_required": true,
+      "icd10_codes": [
+        "<UNKNOWN>"
+      ],
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "diagnosis",
+            "description": "in adults",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "clinical_response",
+            "description": "The patient has continued clinical benefit while receiving the requested agent as demonstrated by tumor response or lack of disease progression, and an acceptable toxicity profile",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "step_therapy_required": false
+    },
+    {
+      "name": "Metastatic renal cell carcinoma",
+      "pa_required": true,
+      "icd10_codes": [
+        "<UNKNOWN>"
+      ],
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with interferon alfa",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "clinical_response",
+            "description": "The patient has continued clinical benefit while receiving the requested agent as demonstrated by tumor response or lack of disease progression, and an acceptable toxicity profile",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "step_therapy_required": false
+    },
+    {
+      "name": "Persistent, recurrent, or metastatic cervical cancer",
+      "pa_required": true,
+      "icd10_codes": [
+        "<UNKNOWN>"
+      ],
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with paclitaxel and cisplatin, or paclitaxel and topotecan",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "clinical_response",
+            "description": "The patient has continued clinical benefit while receiving the requested agent as demonstrated by tumor response or lack of disease progression, and an acceptable toxicity profile",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "step_therapy_required": false
+    },
+    {
+      "name": "Epithelial ovarian, fallopian tube, or primary peritoneal cancer",
+      "pa_required": true,
+      "icd10_codes": [
+        "<UNKNOWN>"
+      ],
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with carboplatin and paclitaxel, followed by a bevacizumab product as a single agent, for stage III or IV disease following initial surgical resection",
+            "logic_operator": "OR"
+          },
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with paclitaxel, pegylated liposomal doxorubicin, or topotecan for platinum-resistant recurrent disease who received no more than 2 prior chemotherapy regimens",
+            "logic_operator": "OR"
+          },
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with carboplatin and paclitaxel or carboplatin and gemcitabine, followed by a bevacizumab product as a single agent, for platinum-sensitive recurrent disease",
+            "logic_operator": "OR"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "clinical_response",
+            "description": "The patient has continued clinical benefit while receiving the requested agent as demonstrated by tumor response or lack of disease progression, and an acceptable toxicity profile",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "step_therapy_required": false,
+      "limitations_of_use": "<UNKNOWN>"
+    },
+    {
+      "name": "Unresectable or metastatic hepatocellular carcinoma (HCC)",
+      "pa_required": true,
+      "icd10_codes": [
+        "<UNKNOWN>"
+      ],
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "combination_restriction",
+            "description": "in combination with atezolizumab, in patients who have not received prior systemic therapy",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "clinical_response",
+            "description": "The patient has continued clinical benefit while receiving the requested agent as demonstrated by tumor response or lack of disease progression, and an acceptable toxicity profile",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": "<UNKNOWN>",
+        "required_prescriber_specialties": [
+          "<UNKNOWN>"
+        ]
+      },
+      "step_therapy_required": false,
+      "limitations_of_use": "<UNKNOWN>"
+    }
+  ],
+  "exclusions": [
+    {
+      "description": "Not for adjuvant treatment of colon cancer"
+    }
+  ]
 }

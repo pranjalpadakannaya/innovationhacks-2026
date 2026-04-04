@@ -1,0 +1,18 @@
+{
+  "confidence_scores": {
+    "overall": 0.9,
+    "pa_criteria_completeness": 1.0,
+    "review_flags": "",
+    "drug_identification": 1.0
+  },
+  "drug": {
+    "brand_name": "Dupixent",
+    "generic_name": "dupilumab",
+    "benefit_type": "medical or pharmacy",
+    "drug_class": "interleukin-4 receptor alpha antagonist",
+    "j_codes": [
+      "J0222"
+    ],
+    "route_of_administration": ""
+  }
+}

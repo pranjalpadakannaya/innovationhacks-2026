@@ -1,47 +1,106 @@
 {
-  "payer": {
-    "name": "Priority Health",
-    "policy_title": "2026 MDL - Priority Health Commercial (Employer Group) and MyPriority",
-    "policy_id": "MDL",
-    "effective_date": "2026"
+  "confidence_scores": {
+    "overall": 1.0,
+    "drug_identification": 1.0,
+    "pa_criteria_completeness": 1.0,
+    "review_flags": ""
   },
   "drug": {
-    "brand_name": "Multiple drugs listed",
-    "generic_name": "Medical Drug List (MDL)",
-    "drug_class": "Mixed therapeutic classes",
-    "route_of_administration": "Multiple routes",
-    "benefit_type": "medical"
+    "brand_name": "Leuprolide",
+    "generic_name": "leuprolide",
+    "drug_class": "Gonadotropin Releasing Hormone (GnRH) Agonist",
+    "route_of_administration": "Injection",
+    "benefit_type": "medical",
+    "hcpcs_codes": [
+      "J1950",
+      "J1951",
+      "J1952"
+    ],
+    "j_codes": [
+      "J1950",
+      "J1951",
+      "J1952"
+    ]
   },
   "indications": [
     {
-      "name": "Multiple indications across therapeutic categories",
+      "name": "Prostate Cancer",
       "pa_required": true,
-      "step_therapy_required": false,
-      "description": "This document is a comprehensive Medical Drug List covering multiple drug classes and indications",
       "initial_authorization": {
         "criteria": [
           {
-            "criterion_type": "other",
-            "description": "Coverage determination based on drug-specific coding and coverage level designation (Preferred Specialty, Non-Preferred, Not Covered, Pharmacy Only, etc.)",
+            "criterion_type": "diagnosis",
+            "description": "Prostate cancer",
             "logic_operator": "AND"
           }
         ],
-        "required_prescriber_specialties": []
+        "authorization_duration_months": 12
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "diagnosis",
+            "description": "Continued prostate cancer",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": 12
+      }
+    },
+    {
+      "name": "Endometriosis",
+      "pa_required": true,
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "diagnosis",
+            "description": "Endometriosis",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": 6
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "diagnosis",
+            "description": "Continued endometriosis",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": 6
+      }
+    },
+    {
+      "name": "Central Precocious Puberty",
+      "pa_required": true,
+      "initial_authorization": {
+        "criteria": [
+          {
+            "criterion_type": "diagnosis",
+            "description": "Central precocious puberty",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": 12
+      },
+      "reauthorization": {
+        "criteria": [
+          {
+            "criterion_type": "diagnosis",
+            "description": "Continued central precocious puberty",
+            "logic_operator": "AND"
+          }
+        ],
+        "authorization_duration_months": 12
       }
     }
   ],
-  "exclusions": [
-    {
-      "description": "Multiple drugs listed as 'Not Covered' including: Leuprolide injectable (Camcevi, J9003), Aflibercept biosimilars (Q5149, Q5150, Q5153, Q5155), Ceftazidime-avibactam (J0714), Cephalosporin variants (J0681, J0695, J0712), and many others requiring prior authorization or having covered alternatives"
-    },
-    {
-      "description": "Drugs marked 'Not Separately Payable' or 'CC' (Clinical Comment restrictions) including DEFENCATH, certain RSV monoclonal antibodies requiring preventive PA, and inpatient-only medications"
-    }
-  ],
-  "confidence_scores": {
-    "overall": 0.45,
-    "drug_identification": 0.95,
-    "pa_criteria_completeness": 0.15,
-    "review_flags": "CRITICAL: This document is a MEDICAL DRUG LIST (formulary) rather than a detailed PA policy. It contains HCPCS codes, coverage levels, and notes for hundreds of drugs but lacks specific PA CRITERIA for individual conditions. Most entries only specify coverage status (Preferred Specialty, Non-Preferred, Not Covered, Pharmacy Only) and notes referencing ICD-10 codes where PA may not be required. The document does NOT provide comprehensive prior authorization requirements, approval criteria, or clinical decision support. Individual drugs show references to specific ICD-10 codes (e.g., bevacizumab with diabetic retinopathy codes E08.311-E11.3593) but without detailed PA criteria such as disease severity requirements, lab value thresholds, step therapy requirements, or required documentation. To extract complete PA policies, more detailed policy documents beyond this formulary listing would be needed. The low PA_criteria_completeness reflects the document's formulary nature rather than its quality."
+  "payer": {
+    "name": "Priority Health",
+    "policy_title": "2026 MDL - Priority Health Commercial (Employer Group) and MyPriority",
+    "policy_id": "MDL 2026",
+    "effective_date": "2026-01-01",
+    "revision_date": "2026-04-02"
   }
 }
