@@ -1,6 +1,10 @@
+import contextlib
+import io
 import json
 import statistics
+import sys
 import time
+from datetime import datetime
 from pathlib import Path
 import anthropic
 
@@ -492,7 +496,7 @@ def extract_policy_record(sections: list[dict], source_filename: str) -> dict:
     client = anthropic.Anthropic()
 
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-3-haiku-20240307",
         max_tokens=4096,
         tools=[
             {
@@ -526,7 +530,52 @@ def extract_policy_record(sections: list[dict], source_filename: str) -> dict:
     raise ValueError("LLM did not return a tool_use block")
 
 
+class _Tee(io.TextIOBase):
+    """Mirrors writes to both a real stream and a file."""
+
+    def __init__(self, real_stream, log_file):
+        self._real = real_stream
+        self._log = log_file
+
+    def write(self, s):
+        self._real.write(s)
+        self._log.write(s)
+        return len(s)
+
+    def flush(self):
+        self._real.flush()
+        self._log.flush()
+
+
+@contextlib.contextmanager
+def _run_log(logs_dir: Path, keep: int = 3):
+    """Context manager that tees stdout to a timestamped log file in logs_dir."""
+    logs_dir.mkdir(exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_path = logs_dir / f"run_{ts}.log"
+
+    with open(log_path, "w") as log_file:
+        tee = _Tee(sys.__stdout__, log_file)
+        old_stdout = sys.stdout
+        sys.stdout = tee
+        try:
+            yield log_path
+        finally:
+            sys.stdout = old_stdout
+
+    # Prune: keep only the `keep` most recent log files
+    logs = sorted(logs_dir.glob("run_*.log"), key=lambda p: p.stat().st_mtime)
+    for old in logs[:-keep]:
+        old.unlink()
+
+
 def main():
+    with _run_log(Path(".logs")):
+        _run()
+
+
+def _run():
     input_dir = Path("policy_data")
     sections_dir = Path("outputs/sections")
     records_dir = Path("outputs/policy_records")
@@ -572,7 +621,8 @@ def main():
         print(f"  → {len(all_sections)} sections → {sections_out.name}")
 
         # LLM extraction — retry with backoff on rate limit
-        for attempt in range(3):
+        max_attempts = 3
+        for attempt in range(max_attempts):
             try:
                 record = extract_policy_record(all_sections, pdf_file.name)
                 record_out = records_dir / f"{pdf_file.stem}.json"
@@ -581,9 +631,12 @@ def main():
                 print(f"  → policy record → {record_out.name}")
                 break
             except anthropic.RateLimitError:
-                wait = 60 * (attempt + 1)
-                print(f"  [rate limit] waiting {wait}s before retry {attempt + 1}/3...")
-                time.sleep(wait)
+                if attempt < max_attempts - 1:
+                    wait = 60 * (attempt + 1)
+                    print(f"  [rate limit] waiting {wait}s before retry {attempt + 1}/{max_attempts}...")
+                    time.sleep(wait)
+                else:
+                    print(f"  [error] LLM extraction failed after {max_attempts} attempts: rate limit exhausted")
             except Exception as e:
                 print(f"  [error] LLM extraction failed: {e}")
                 break
