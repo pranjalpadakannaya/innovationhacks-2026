@@ -1,13 +1,23 @@
 import json
+import os
 import re
+from functools import lru_cache
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
+import requests
 
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
+_RXNORM_API_BASE = os.getenv("RXNORM_API_BASE", "https://rxnav.nlm.nih.gov/REST").rstrip("/")
+_RXNORM_LOOKUP_ENABLED = os.getenv("RXNORM_LOOKUP_ENABLED", "true").lower() not in {
+    "0",
+    "false",
+    "no",
+}
+_RXNORM_TIMEOUT_SECONDS = float(os.getenv("RXNORM_TIMEOUT_SECONDS", "5"))
 
 _PAYER_NAME_MAP = {
     "bcbs nc": "Blue Cross NC",
@@ -44,6 +54,8 @@ _STEP_THERAPY_TERMS = (
     "sequencing requirements",
 )
 
+_HCPCS_CODE_PATTERN = re.compile(r"\b([A-Z]\d{4})\b")
+
 
 class NormalizedCriterion(BaseModel):
     criterion_type: str
@@ -61,6 +73,10 @@ class NormalizedAuthBlock(BaseModel):
 
 class EnrichmentStatus(BaseModel):
     rxnorm_cui: str | None = None
+    rxnorm_name: str | None = None
+    rxnorm_tty: str | None = None
+    rxnorm_match_status: str | None = None
+    rxnorm_query: str | None = None
     loinc_codes: list[str] = Field(default_factory=list)
     validated_icd10_codes: list[str] = Field(default_factory=list)
     needs_rxnorm_lookup: bool = True
@@ -80,6 +96,19 @@ class NormalizedIndication(BaseModel):
         default_factory=NormalizedAuthBlock
     )
     reauthorization: NormalizedAuthBlock | None = None
+    enrichment: EnrichmentStatus = Field(default_factory=EnrichmentStatus)
+
+
+class NormalizedFormularyEntry(BaseModel):
+    entry_id: str
+    hcpcs_code: str | None = None
+    drug_name: str | None = None
+    description: str | None = None
+    coverage_level: str | None = None
+    category: str | None = None
+    notes: str | None = None
+    pa_required: bool = False
+    step_therapy_possible: bool = False
     enrichment: EnrichmentStatus = Field(default_factory=EnrichmentStatus)
 
 
@@ -106,9 +135,11 @@ class ReviewSummary(BaseModel):
 class NormalizedPolicyRecord(BaseModel):
     normalization_version: str = "2026-04-04"
     source_filename: str | None = None
+    document_type: str = "policy"
     payer: dict[str, Any]
     drug: NormalizedDrug
     indications: list[NormalizedIndication] = Field(default_factory=list)
+    formulary_entries: list[NormalizedFormularyEntry] = Field(default_factory=list)
     exclusions: list[dict[str, str]] = Field(default_factory=list)
     confidence_scores: dict[str, Any] = Field(default_factory=dict)
     review: ReviewSummary = Field(default_factory=ReviewSummary)
@@ -149,6 +180,15 @@ def _normalize_code_list(values: Any) -> list[str]:
         if text:
             normalized.append(text.upper())
     return _dedupe_preserve_order(normalized)
+
+
+def _extract_codes_from_text(value: Any) -> list[str]:
+    text = _clean_string(value)
+    if not text:
+        return []
+    return _dedupe_preserve_order(
+        [match.upper() for match in _HCPCS_CODE_PATTERN.findall(text.upper())]
+    )
 
 
 def _normalize_date(value: Any) -> str | None:
@@ -220,6 +260,196 @@ def _extract_review_flags(confidence_scores: dict[str, Any]) -> list[str]:
     return [part.strip() for part in re.split(r"[;\n]", text) if part.strip()]
 
 
+def _sanitize_rxnorm_candidate(value: str | None) -> str | None:
+    text = _clean_string(value)
+    if not text:
+        return None
+    text = re.sub(r"\[[^\]]+\]", "", text)
+    text = re.sub(r"\([^)]*alternatives?[^)]*\)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\([^)]*biosimilars?[^)]*\)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text).strip(" ,;:/-")
+    return text or None
+
+
+def _rxnorm_query_candidates(generic_name: str | None, brand_names: list[str], display_name: str) -> list[str]:
+    candidates: list[str] = []
+    for value in [generic_name, *brand_names, display_name]:
+        sanitized = _sanitize_rxnorm_candidate(value)
+        if sanitized:
+            candidates.append(sanitized)
+    return _dedupe_preserve_order(candidates)
+
+
+def _formulary_entry_rxnorm_candidates(raw: dict[str, Any]) -> list[str]:
+    candidates: list[str] = []
+
+    for value in [raw.get("drug_name"), raw.get("description")]:
+        text = _clean_string(value)
+        if not text:
+            continue
+
+        text = re.sub(r"\b(?:injection|intravenous|subcutaneous|biosimilar)\b", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?)\b", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\([^)]*\)", "", text)
+        text = re.sub(r"\s+", " ", text).strip(" ,;:/-")
+        sanitized = _sanitize_rxnorm_candidate(text)
+        if sanitized:
+            candidates.append(sanitized)
+
+    return _dedupe_preserve_order(candidates)
+
+
+@lru_cache(maxsize=256)
+def _fetch_rxnorm_properties(rxcui: str) -> dict[str, Any] | None:
+    response = requests.get(
+        f"{_RXNORM_API_BASE}/rxcui/{rxcui}/properties.json",
+        timeout=_RXNORM_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    return payload.get("properties")
+
+
+@lru_cache(maxsize=256)
+def _lookup_rxnorm(query: str) -> dict[str, Any] | None:
+    direct_response = requests.get(
+        f"{_RXNORM_API_BASE}/rxcui.json",
+        params={"name": query, "search": 2},
+        timeout=_RXNORM_TIMEOUT_SECONDS,
+    )
+    direct_response.raise_for_status()
+    direct_payload = direct_response.json()
+    rxnorm_ids = (
+        direct_payload.get("idGroup", {}).get("rxnormId") or []
+    )
+    if rxnorm_ids:
+        rxcui = str(rxnorm_ids[0])
+        properties = _fetch_rxnorm_properties(rxcui) or {}
+        return {
+            "rxnorm_cui": rxcui,
+            "rxnorm_name": properties.get("name") or query,
+            "rxnorm_tty": properties.get("tty"),
+            "rxnorm_match_status": "exact",
+            "rxnorm_query": query,
+        }
+
+    approximate_response = requests.get(
+        f"{_RXNORM_API_BASE}/approximateTerm.json",
+        params={"term": query, "maxEntries": 1},
+        timeout=_RXNORM_TIMEOUT_SECONDS,
+    )
+    approximate_response.raise_for_status()
+    approximate_payload = approximate_response.json()
+    candidates = (
+        approximate_payload.get("approximateGroup", {}).get("candidate") or []
+    )
+    if not candidates:
+        return None
+
+    candidate = candidates[0]
+    rxcui = str(candidate.get("rxcui") or "").strip()
+    if not rxcui:
+        return None
+
+    properties = _fetch_rxnorm_properties(rxcui) or {}
+    return {
+        "rxnorm_cui": rxcui,
+        "rxnorm_name": properties.get("name") or query,
+        "rxnorm_tty": properties.get("tty"),
+        "rxnorm_match_status": "approximate",
+        "rxnorm_query": query,
+    }
+
+
+def _enrich_with_rxnorm(
+    *,
+    generic_name: str | None,
+    brand_names: list[str],
+    display_name: str,
+    review: ReviewSummary,
+) -> EnrichmentStatus:
+    enrichment = EnrichmentStatus(
+        needs_rxnorm_lookup=bool(display_name and display_name != "Unknown Drug"),
+        needs_loinc_linking=False,
+        needs_icd10_validation=False,
+    )
+
+    if not enrichment.needs_rxnorm_lookup:
+        enrichment.rxnorm_match_status = "not_applicable"
+        return enrichment
+
+    if not _RXNORM_LOOKUP_ENABLED:
+        enrichment.rxnorm_match_status = "disabled"
+        return enrichment
+
+    for candidate in _rxnorm_query_candidates(generic_name, brand_names, display_name):
+        try:
+            match = _lookup_rxnorm(candidate)
+        except requests.RequestException as exc:
+            enrichment.rxnorm_match_status = "lookup_failed"
+            review.warnings.append(f"RxNorm lookup failed: {exc}")
+            return enrichment
+
+        if not match:
+            continue
+
+        enrichment.rxnorm_cui = match.get("rxnorm_cui")
+        enrichment.rxnorm_name = match.get("rxnorm_name")
+        enrichment.rxnorm_tty = match.get("rxnorm_tty")
+        enrichment.rxnorm_match_status = match.get("rxnorm_match_status")
+        enrichment.rxnorm_query = match.get("rxnorm_query")
+        enrichment.needs_rxnorm_lookup = False
+        return enrichment
+
+    enrichment.rxnorm_match_status = "not_found"
+    return enrichment
+
+
+def _enrich_formulary_entry_with_rxnorm(
+    raw: dict[str, Any],
+    review: ReviewSummary,
+) -> EnrichmentStatus:
+    enrichment = EnrichmentStatus(
+        needs_rxnorm_lookup=True,
+        needs_loinc_linking=False,
+        needs_icd10_validation=False,
+    )
+
+    if not _RXNORM_LOOKUP_ENABLED:
+        enrichment.rxnorm_match_status = "disabled"
+        return enrichment
+
+    candidates = _formulary_entry_rxnorm_candidates(raw)
+    if not candidates:
+        enrichment.needs_rxnorm_lookup = False
+        enrichment.rxnorm_match_status = "not_enough_text"
+        return enrichment
+
+    for candidate in candidates:
+        try:
+            match = _lookup_rxnorm(candidate)
+        except requests.RequestException as exc:
+            enrichment.rxnorm_match_status = "lookup_failed"
+            warning = f"RxNorm lookup failed: {exc}"
+            if warning not in review.warnings:
+                review.warnings.append(warning)
+            return enrichment
+
+        if not match:
+            continue
+
+        enrichment.rxnorm_cui = match.get("rxnorm_cui")
+        enrichment.rxnorm_name = match.get("rxnorm_name")
+        enrichment.rxnorm_tty = match.get("rxnorm_tty")
+        enrichment.rxnorm_match_status = match.get("rxnorm_match_status")
+        enrichment.rxnorm_query = match.get("rxnorm_query")
+        enrichment.needs_rxnorm_lookup = False
+        return enrichment
+
+    enrichment.rxnorm_match_status = "not_found"
+    return enrichment
+
+
 def _criterion_tokens(description: str) -> list[str]:
     lowered = description.lower()
     tokens: list[str] = []
@@ -234,6 +464,71 @@ def _criterion_tokens(description: str) -> list[str]:
     if re.search(r"\bicd-?10\b", lowered):
         tokens.append("diagnosis_code")
     return _dedupe_preserve_order(tokens)
+
+
+def _infer_policy_level_codes(raw_record: dict[str, Any]) -> list[str]:
+    codes: list[str] = []
+
+    drug_raw = raw_record.get("drug") if isinstance(raw_record.get("drug"), dict) else {}
+    for key in ("brand_name", "generic_name", "drug_class", "limitations_of_use"):
+        codes.extend(_extract_codes_from_text(drug_raw.get(key)))
+
+    indications = raw_record.get("indications")
+    if isinstance(indications, list):
+        for indication in indications:
+            if not isinstance(indication, dict):
+                continue
+            codes.extend(_extract_codes_from_text(indication.get("name")))
+            codes.extend(_extract_codes_from_text(indication.get("description")))
+            auth_blocks = [
+                indication.get("initial_authorization"),
+                indication.get("reauthorization"),
+            ]
+            for auth in auth_blocks:
+                if not isinstance(auth, dict):
+                    continue
+                for criterion in auth.get("criteria") or []:
+                    if isinstance(criterion, dict):
+                        codes.extend(_extract_codes_from_text(criterion.get("description")))
+
+    exclusions = raw_record.get("exclusions")
+    if isinstance(exclusions, list):
+        for exclusion in exclusions:
+            if isinstance(exclusion, dict):
+                codes.extend(_extract_codes_from_text(exclusion.get("description")))
+
+    return _dedupe_preserve_order(codes)
+
+
+def _normalize_formulary_entry(
+    raw: dict[str, Any],
+    index: int,
+    review: ReviewSummary,
+) -> NormalizedFormularyEntry:
+    hcpcs_code = _clean_string(raw.get("hcpcs_code"))
+    drug_name = _clean_string(raw.get("drug_name"))
+    description = _clean_string(raw.get("description"))
+    coverage_level = _clean_string(raw.get("coverage_level"))
+    category = _clean_string(raw.get("category"))
+    notes = _clean_string(raw.get("notes"))
+    combined_text = " ".join(filter(None, [description, notes])).lower()
+    enrichment = _enrich_formulary_entry_with_rxnorm(raw, review)
+
+    return NormalizedFormularyEntry(
+        entry_id=f"{_slugify(drug_name or hcpcs_code or f'entry-{index}')}-{index}",
+        hcpcs_code=hcpcs_code.upper() if hcpcs_code else None,
+        drug_name=None if drug_name == "N/A" else drug_name,
+        description=description,
+        coverage_level=coverage_level,
+        category=category,
+        notes=notes,
+        pa_required="pa" in combined_text,
+        step_therapy_possible=(
+            "covered alternative" in combined_text
+            or any(term in combined_text for term in _STEP_THERAPY_TERMS)
+        ),
+        enrichment=enrichment,
+    )
 
 
 def _normalize_criterion(raw: dict[str, Any]) -> NormalizedCriterion:
@@ -331,11 +626,83 @@ def _normalize_indication(
     )
 
 
+def _normalize_formulary_record(
+    raw_record: dict[str, Any],
+    *,
+    source_filename: str | None,
+) -> NormalizedPolicyRecord:
+    review = ReviewSummary()
+    payer_raw = raw_record.get("payer") if isinstance(raw_record.get("payer"), dict) else {}
+    payer_name = _normalize_payer_name(payer_raw.get("name"), source_filename)
+    if payer_name == "Unknown Payer":
+        review.missing_fields.append("payer.name")
+
+    raw_entries = raw_record.get("drugs")
+    formulary_entries: list[NormalizedFormularyEntry] = []
+    if isinstance(raw_entries, list):
+        for index, entry in enumerate(raw_entries, start=1):
+            if isinstance(entry, dict):
+                formulary_entries.append(_normalize_formulary_entry(entry, index, review))
+    else:
+        review.missing_fields.append("drugs")
+
+    aggregated_codes = _dedupe_preserve_order(
+        [entry.hcpcs_code for entry in formulary_entries if entry.hcpcs_code]
+    )
+
+    if not formulary_entries:
+        review.warnings.append("No formulary entries were available to normalize")
+
+    return NormalizedPolicyRecord(
+        source_filename=source_filename,
+        document_type="formulary_list",
+        payer={
+            "name": payer_name,
+            "policy_id": _clean_string(payer_raw.get("policy_id")),
+            "policy_title": _clean_string(payer_raw.get("policy_title"))
+            or (Path(source_filename).stem if source_filename else "Unknown Policy"),
+            "effective_date": _normalize_date(payer_raw.get("effective_date")),
+            "revision_date": _normalize_date(payer_raw.get("revision_date")),
+        },
+        drug=NormalizedDrug(
+            display_name="Various",
+            brand_names=[],
+            generic_name="formulary",
+            normalized_generic_name="formulary",
+            j_codes=[],
+            hcpcs_codes=aggregated_codes,
+            benefit_type="medical",
+            drug_class=None,
+            route_of_administration=None,
+            limitations_of_use=None,
+            enrichment=EnrichmentStatus(
+                needs_rxnorm_lookup=False,
+                rxnorm_match_status="not_applicable",
+                needs_loinc_linking=False,
+                needs_icd10_validation=False,
+            ),
+        ),
+        indications=[],
+        formulary_entries=formulary_entries,
+        exclusions=[],
+        confidence_scores={},
+        review=review,
+    )
+
+
 def normalize_policy_record(
     raw_record: dict[str, Any],
     *,
     source_filename: str | None = None,
 ) -> NormalizedPolicyRecord:
+    if raw_record.get("document_type") == "formulary_list" or isinstance(
+        raw_record.get("drugs"), list
+    ):
+        return _normalize_formulary_record(
+            raw_record,
+            source_filename=source_filename,
+        )
+
     review = ReviewSummary()
 
     payer_raw = raw_record.get("payer") if isinstance(raw_record.get("payer"), dict) else {}
@@ -359,22 +726,33 @@ def normalize_policy_record(
     if display_name == "Unknown Drug":
         review.missing_fields.append("drug.brand_name|drug.generic_name")
 
+    inferred_codes = _infer_policy_level_codes(raw_record)
+    structured_j_codes = _normalize_code_list(drug_raw.get("j_codes"))
+    structured_hcpcs_codes = _normalize_code_list(drug_raw.get("hcpcs_codes"))
+    all_hcpcs_codes = _dedupe_preserve_order(
+        structured_hcpcs_codes + structured_j_codes + inferred_codes
+    )
+    all_j_codes = [code for code in all_hcpcs_codes if code.startswith("J")]
+
+    drug_enrichment = _enrich_with_rxnorm(
+        generic_name=generic_name,
+        brand_names=brand_names,
+        display_name=display_name,
+        review=review,
+    )
+
     normalized_drug = NormalizedDrug(
         display_name=display_name,
         brand_names=brand_names,
         generic_name=generic_name,
         normalized_generic_name=generic_name.lower() if generic_name else None,
-        j_codes=_normalize_code_list(drug_raw.get("j_codes")),
-        hcpcs_codes=_normalize_code_list(drug_raw.get("hcpcs_codes")),
+        j_codes=all_j_codes,
+        hcpcs_codes=all_hcpcs_codes,
         benefit_type=_normalize_benefit_type(drug_raw.get("benefit_type")),
         drug_class=_clean_string(drug_raw.get("drug_class")),
         route_of_administration=_clean_string(drug_raw.get("route_of_administration")),
         limitations_of_use=_clean_string(drug_raw.get("limitations_of_use")),
-        enrichment=EnrichmentStatus(
-            needs_rxnorm_lookup=bool(display_name and display_name != "Unknown Drug"),
-            needs_loinc_linking=False,
-            needs_icd10_validation=False,
-        ),
+        enrichment=drug_enrichment,
     )
 
     if not normalized_drug.j_codes and not normalized_drug.hcpcs_codes:
@@ -408,6 +786,7 @@ def normalize_policy_record(
 
     return NormalizedPolicyRecord(
         source_filename=source_filename,
+        document_type="policy",
         payer={
             "name": payer_name,
             "policy_id": _clean_string(payer_raw.get("policy_id")),
@@ -425,7 +804,11 @@ def normalize_policy_record(
 
 
 def normalize_record_file(input_path: Path, output_path: Path) -> NormalizedPolicyRecord:
-    raw_record = json.loads(input_path.read_text(encoding="utf-8"))
+    raw_text = input_path.read_text(encoding="utf-8")
+    if not raw_text.strip():
+        raise ValueError(f"Input file is empty: {input_path.name}")
+
+    raw_record = json.loads(raw_text)
     normalized = normalize_policy_record(raw_record, source_filename=input_path.name)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -446,7 +829,10 @@ def run_normalization(
     normalized_records: list[NormalizedPolicyRecord] = []
     for input_path in sorted(input_dir.glob("*.json")):
         output_path = output_dir / input_path.name
-        normalized_records.append(normalize_record_file(input_path, output_path))
+        try:
+            normalized_records.append(normalize_record_file(input_path, output_path))
+        except Exception as exc:
+            print(f"[skip] {input_path.name}: {exc}")
     return normalized_records
 
 
