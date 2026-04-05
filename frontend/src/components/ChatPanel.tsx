@@ -162,36 +162,36 @@ export function ChatPanel({ open, onClose }: ChatPanelProps) {
                                         <ReactMarkdown
                                             remarkPlugins={[remarkGfm]}
                                             components={{
-                                                p: ({ children }) => <p style={{ margin: '0 0 6px 0' }}>{children}</p>,
-                                                h1: ({ children }) => <p style={{ fontWeight: 700, fontSize: '13px', margin: '8px 0 4px 0', color: '#131210' }}>{children}</p>,
-                                                h2: ({ children }) => <p style={{ fontWeight: 700, fontSize: '12px', margin: '8px 0 4px 0', color: '#131210' }}>{children}</p>,
-                                                h3: ({ children }) => <p style={{ fontWeight: 600, fontSize: '12px', margin: '6px 0 3px 0', color: '#131210' }}>{children}</p>,
-                                                strong: ({ children }) => <strong style={{ fontWeight: 600, color: '#131210' }}>{children}</strong>,
-                                                ul: ({ children }) => <ul style={{ margin: '4px 0', paddingLeft: '16px' }}>{children}</ul>,
-                                                ol: ({ children }) => <ol style={{ margin: '4px 0', paddingLeft: '16px' }}>{children}</ol>,
-                                                li: ({ children }) => <li style={{ margin: '2px 0' }}>{children}</li>,
+                                                p: ({ children }: { children?: React.ReactNode }) => <p style={{ margin: '0 0 6px 0' }}>{children}</p>,
+                                                h1: ({ children }: { children?: React.ReactNode }) => <p style={{ fontWeight: 700, fontSize: '13px', margin: '8px 0 4px 0', color: '#131210' }}>{children}</p>,
+                                                h2: ({ children }: { children?: React.ReactNode }) => <p style={{ fontWeight: 700, fontSize: '12px', margin: '8px 0 4px 0', color: '#131210' }}>{children}</p>,
+                                                h3: ({ children }: { children?: React.ReactNode }) => <p style={{ fontWeight: 600, fontSize: '12px', margin: '6px 0 3px 0', color: '#131210' }}>{children}</p>,
+                                                strong: ({ children }: { children?: React.ReactNode }) => <strong style={{ fontWeight: 600, color: '#131210' }}>{children}</strong>,
+                                                ul: ({ children }: { children?: React.ReactNode }) => <ul style={{ margin: '4px 0', paddingLeft: '16px' }}>{children}</ul>,
+                                                ol: ({ children }: { children?: React.ReactNode }) => <ol style={{ margin: '4px 0', paddingLeft: '16px' }}>{children}</ol>,
+                                                li: ({ children }: { children?: React.ReactNode }) => <li style={{ margin: '2px 0' }}>{children}</li>,
                                                 hr: () => <hr style={{ border: 'none', borderTop: '1px solid #D8D4CC', margin: '8px 0' }} />,
-                                                blockquote: ({ children }) => (
+                                                blockquote: ({ children }: { children?: React.ReactNode }) => (
                                                     <blockquote style={{ borderLeft: '2px solid #91bfeb', paddingLeft: '8px', margin: '6px 0', color: '#4A4845' }}>
                                                         {children}
                                                     </blockquote>
                                                 ),
-                                                code: ({ children }) => (
+                                                code: ({ children }: { children?: React.ReactNode }) => (
                                                     <code style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '10px', background: '#FFFFFF', border: '1px solid #D8D4CC', borderRadius: '2px', padding: '1px 4px' }}>
                                                         {children}
                                                     </code>
                                                 ),
-                                                table: ({ children }) => (
+                                                table: ({ children }: { children?: React.ReactNode }) => (
                                                     <div style={{ overflowX: 'auto', margin: '6px 0' }}>
                                                         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '11px' }}>{children}</table>
                                                     </div>
                                                 ),
-                                                th: ({ children }) => (
+                                                th: ({ children }: { children?: React.ReactNode }) => (
                                                     <th style={{ padding: '4px 8px', background: '#FFFFFF', border: '1px solid #D8D4CC', fontWeight: 600, textAlign: 'left', fontFamily: "'IBM Plex Mono', monospace", fontSize: '10px', letterSpacing: '0.05em' }}>
                                                         {children}
                                                     </th>
                                                 ),
-                                                td: ({ children }) => (
+                                                td: ({ children }: { children?: React.ReactNode }) => (
                                                     <td style={{ padding: '4px 8px', border: '1px solid #EBEBEB', verticalAlign: 'top' }}>{children}</td>
                                                 ),
                                             }}
