@@ -125,7 +125,7 @@ export function Sidebar({ active, onNavigate, changes, portfolio, onChatToggle }
                 </p>
                 <ul className="space-y-2">
                     {watchlistItems.map(item => (
-                        <li key={`${item.payer}-${item.change_type}-${item.date}`} className="flex items-start gap-2"
+                        <li key={`${item.drug}-${item.payer}-${item.change_type}-${item.date}`} className="flex items-start gap-2"
                             style={{ paddingBottom: '7px', borderBottom: '1px solid #EBEBEB' }}>
                             <span className="mt-1 flex-shrink-0" style={{
                                 width: '5px', height: '5px', borderRadius: '50%',

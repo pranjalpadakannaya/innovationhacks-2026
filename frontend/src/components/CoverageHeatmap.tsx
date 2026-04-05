@@ -40,8 +40,8 @@ export function CoverageHeatmap({ portfolio, onSelectDrug }: CoverageHeatmapProp
         <div className="grid items-center gap-3 mb-2"
           style={{ gridTemplateColumns: `140px repeat(${payers.length}, minmax(0, 1fr))` }}>
           <span />
-          {payers.map(payer => (
-            <span key={payer} style={{ ...mono, fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#918D88', textAlign: 'center', display: 'block' }}>
+          {payers.map((payer, i) => (
+            <span key={`${payer}-${i}`} style={{ ...mono, fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#918D88', textAlign: 'center', display: 'block' }}>
               {formatPayerName(payer)}
             </span>
           ))}

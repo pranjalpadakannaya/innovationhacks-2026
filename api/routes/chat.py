@@ -4,6 +4,7 @@ import logging
 from typing import Literal
 
 import anthropic
+import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -159,7 +160,6 @@ async def _resolve_drug_name(raw_name: str) -> str:
     # Brand name / product — walk up to the ingredient via the RxNorm related endpoint
     if rxcui:
         try:
-            import requests
             resp = await loop.run_in_executor(
                 None,
                 lambda: requests.get(

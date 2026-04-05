@@ -41,6 +41,19 @@ export const CRITERION_COLORS: Record<string, string> = {
   other:                  '#918D88',
 }
 
+export const CRITERION_CHIP_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  step_therapy:            { bg: '#F8EDDC', text: '#8B6428', border: 'rgba(139,100,40,0.2)' },
+  combination_restriction: { bg: '#F0EFEB', text: '#4A4845', border: '#D8D4CC' },
+  prior_therapy:           { bg: '#F8EDDC', text: '#8B6428', border: 'rgba(139,100,40,0.2)' },
+  line_of_therapy:         { bg: '#EAF4FE', text: '#2870A8', border: 'rgba(40,112,168,0.25)' },
+  disease_severity:        { bg: '#FBEAEA', text: '#B81C1C', border: 'rgba(184,28,28,0.2)' },
+  lab_value:               { bg: '#EAF4FE', text: '#2870A8', border: 'rgba(40,112,168,0.25)' },
+  diagnosis:               { bg: '#F0EFEB', text: '#4A4845', border: '#D8D4CC' },
+  prescriber:              { bg: '#EAF4FE', text: '#2870A8', border: 'rgba(40,112,168,0.25)' },
+  clinical_response:       { bg: '#EAF4FE', text: '#2870A8', border: 'rgba(40,112,168,0.25)' },
+  other:                   { bg: '#F0EFEB', text: '#918D88', border: '#D8D4CC' },
+}
+
 export const CHANGE_TYPE_LABELS: Record<string, string> = {
   ADDED_STEP_THERAPY:   'Step therapy added',
   ADDED_CRITERION:      'Criterion added',

@@ -1,4 +1,5 @@
 import type { ChangeEntry } from '../types/policy'
+import { CHANGE_TYPE_LABELS } from '../lib/formatters'
 
 interface RecentChangeFeedProps {
   changes: ChangeEntry[]
@@ -7,14 +8,6 @@ interface RecentChangeFeedProps {
 const mono: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" }
 const LABEL: React.CSSProperties = { ...mono, fontSize: '9px', letterSpacing: '0.2em', textTransform: 'uppercase' as const, color: '#918D88' }
 
-const changeTypeLabels: Record<string, string> = {
-  ADDED_STEP_THERAPY:   'Step Therapy Added',
-  ADDED_CRITERION:      'Criterion Added',
-  REMOVED_CRITERION:    'Criterion Removed',
-  MODIFIED_THRESHOLD:   'Threshold Changed',
-  MODIFIED_WORDING:     'Wording Updated',
-  MODIFIED_PA_REQUIRED: 'PA Status Changed',
-}
 
 const severityOrder = { HIGH: 0, MED: 1, LOW: 2 }
 
@@ -65,7 +58,7 @@ export function RecentChangeFeed({ changes }: RecentChangeFeedProps) {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {sorted.map((change, i) => {
           const sev  = sevStyle[change.severity]
-          const title = `${change.payer} — ${changeTypeLabels[change.change_type] ?? change.change_type}`
+          const title = `${change.payer} — ${CHANGE_TYPE_LABELS[change.change_type] ?? change.change_type}`
           return (
             <div key={i} style={{ padding: '11px 14px', borderBottom: '1px solid #EBEBEB' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '4px' }}>

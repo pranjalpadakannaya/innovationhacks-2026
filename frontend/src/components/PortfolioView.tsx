@@ -32,7 +32,6 @@ interface StatCardData {
 }
 
 import { formatPayerName } from '../lib/formatters'
-function shortPayer(name: string) { return formatPayerName(name) }
 
 function formatChangeDate(date: string) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date))
@@ -217,7 +216,7 @@ function DrugCard({ drug, onSelect }: { drug: DrugPortfolioEntry; onSelect: () =
           const barColor = pct > 70 ? '#B81C1C' : pct > 40 ? '#8B6428' : '#1A7840'
           return (
             <div key={policy.payer.name} className="flex items-center gap-2 mb-1">
-              <span style={{ ...mono, fontSize: '9px', color: '#918D88', width: '34px', flexShrink: 0 }}>{shortPayer(policy.payer.name)}</span>
+              <span style={{ ...mono, fontSize: '9px', color: '#918D88', width: '34px', flexShrink: 0 }}>{formatPayerName(policy.payer.name)}</span>
               <div style={{ flex: 1, height: '3px', background: '#EBEBEB', borderRadius: '1px', overflow: 'hidden' }}>
                 <motion.div style={{ height: '100%', background: barColor, borderRadius: '1px' }}
                   initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.35, ease: 'easeOut' }} />
@@ -236,7 +235,7 @@ function DrugCard({ drug, onSelect }: { drug: DrugPortfolioEntry; onSelect: () =
             const ar = trend.direction === 'tightening' ? '↑' : trend.direction === 'loosening' ? '↓' : '→'
             return (
               <div key={trend.payerName} className="flex items-center gap-1.5">
-                <span style={{ ...mono, fontSize: '9px', color: '#918D88' }}>{shortPayer(trend.payerName)}</span>
+                <span style={{ ...mono, fontSize: '9px', color: '#918D88' }}>{formatPayerName(trend.payerName)}</span>
                 <SparkLine data={trend.history.map(p => p.score)} color={tc} width={40} height={16} />
                 <span style={{ ...mono, fontSize: '9px', fontWeight: 600, color: tc }}>{ar}{Math.abs(trend.delta)}</span>
               </div>
@@ -258,8 +257,9 @@ function DrugCard({ drug, onSelect }: { drug: DrugPortfolioEntry; onSelect: () =
 
 export function PortfolioView({ portfolio, onSelectDrug, changes }: PortfolioViewProps) {
   const [search, setSearch] = useState('')
-  const stats    = buildStats(portfolio, changes)
-  const filtered = portfolio.filter(d =>
+  const stats      = buildStats(portfolio, changes)
+  const highImpact = changes.filter(c => c.severity === 'HIGH').length
+  const filtered   = portfolio.filter(d =>
     d.brandName.toLowerCase().includes(search.toLowerCase()) ||
     d.genericName.toLowerCase().includes(search.toLowerCase()) ||
     d.drugClass.toLowerCase().includes(search.toLowerCase())
@@ -323,7 +323,7 @@ export function PortfolioView({ portfolio, onSelectDrug, changes }: PortfolioVie
 
       {/* Status bar */}
       <div style={{ background: '#FFFFFF', borderTop: '1px solid #D8D4CC', padding: '5px 26px', display: 'flex', alignItems: 'center', gap: '18px', marginTop: 'auto' }}>
-        {[{ dot: '#1A7840', label: 'API Connected' }, { dot: '#8B6428', label: '4 alerts pending' }].map(({ dot, label }) => (
+        {[{ dot: '#1A7840', label: 'API Connected' }, { dot: '#8B6428', label: `${highImpact} alert${highImpact !== 1 ? 's' : ''} pending` }].map(({ dot, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px', ...mono, fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#918D88' }}>
             <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: dot }} /> {label}
           </div>
