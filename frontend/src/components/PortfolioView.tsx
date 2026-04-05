@@ -7,6 +7,8 @@ import type { ChangeEntry } from '../types/policy'
 import { SparkLine } from './SparkLine'
 import { CoverageHeatmap } from './CoverageHeatmap'
 import { RecentChangeFeed } from './RecentChangeFeed'
+import { OverviewMatrixPanel } from './OverviewMatrixPanel'
+import { OverviewPolicyDiffPanel } from './OverviewPolicyDiffPanel'
 import {
   Dialog,
   DialogContent,
@@ -188,8 +190,8 @@ const stagger = {
 function StatCard({ stat, index }: { stat: StatCardData; index: number }) {
   const cardBody = (
     <div
-      className="h-full rounded-[24px] border p-5 text-left transition-all duration-200"
-      style={{ background: '#fff', borderColor: '#E5E2DC' }}
+      className="h-full rounded-[26px] border p-5 text-left transition-all duration-200 shadow-[0_18px_48px_rgba(18,52,51,0.1)] backdrop-blur-[18px]"
+      style={{ background: 'rgba(255, 252, 245, 0.82)', borderColor: 'rgba(53, 76, 72, 0.14)' }}
     >
       <div className="flex h-full flex-col">
         <p className="mb-3 text-xs" style={{ color: '#9CA3AF' }}>{stat.label}</p>
@@ -294,9 +296,9 @@ function DrugCard({ drug, onSelect }: { drug: DrugPortfolioEntry; onSelect: () =
     <motion.button
       variants={stagger.item}
       onClick={onSelect}
-      className="group w-full rounded-xl border p-5 text-left transition-all duration-200"
-      style={{ background: '#fff', borderColor: '#E5E2DC' }}
-      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(14,17,23,0.08)', borderColor: '#7BA8C4' }}
+      className="group w-full rounded-[26px] border p-5 text-left transition-all duration-200 backdrop-blur-[18px]"
+      style={{ background: 'rgba(255, 252, 245, 0.82)', borderColor: 'rgba(53, 76, 72, 0.14)' }}
+      whileHover={{ y: -2, boxShadow: '0 18px 48px rgba(18,52,51,0.1)', borderColor: '#7BA8C4' }}
     >
       <div className="mb-1 flex items-start justify-between">
         <div>
@@ -454,8 +456,8 @@ export function PortfolioView({ portfolio, onSelectDrug }: PortfolioViewProps) {
               ))}
               <motion.div
                 variants={stagger.item}
-                className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8"
-                style={{ borderColor: '#E5E2DC' }}
+                className="flex min-h-[200px] flex-col items-center justify-center rounded-[26px] border-2 border-dashed p-8"
+                style={{ borderColor: 'rgba(53, 76, 72, 0.14)', background: 'rgba(255, 252, 245, 0.56)' }}
               >
                 <p className="mb-2 text-2xl" style={{ color: '#D1CEC8' }}>+</p>
                 <p className="text-sm font-medium" style={{ color: '#9CA3AF' }}>Add product</p>
@@ -464,6 +466,11 @@ export function PortfolioView({ portfolio, onSelectDrug }: PortfolioViewProps) {
                 </p>
               </motion.div>
             </motion.div>
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(360px,0.95fr)]">
+            <OverviewMatrixPanel portfolio={portfolio} />
+            <OverviewPolicyDiffPanel portfolio={portfolio} changes={mockChanges} />
           </div>
         </div>
       </div>
