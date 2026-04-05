@@ -74,6 +74,10 @@ export interface ChangeEntry {
   change_type: string
   summary: string
   date: string
+  criterion_type?: CriterionType
+  before_text?: string
+  after_text?: string
+  auth_phase?: 'initial' | 'reauth'
 }
 
 export interface InsightCard {
