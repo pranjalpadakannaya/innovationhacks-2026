@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ChevronDown } from 'lucide-react'
 import type { DrugPortfolioEntry } from '../data/mockPortfolio'
 import { ComparisonMatrix } from './ComparisonMatrix'
 import { InsightPanel } from './InsightPanel'
@@ -25,6 +25,11 @@ const tabs: { id: Tab; label: string }[] = [
 
 export function DrugDetailView({ drug, onBack, changes }: DrugDetailViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>('comparison')
+  const [limitationsOpen, setLimitationsOpen] = useState(false)
+
+  // Pull drug-level fields from the first policy that has them
+  const benefitType = drug.policies.find(p => p.drug.benefit_type)?.drug.benefit_type
+  const limitationsOfUse = drug.policies.find(p => p.drug.limitations_of_use)?.drug.limitations_of_use
 
   const totalPA  = drug.policies.reduce((s, p) => s + p.indications.filter(i => i.pa_required).length, 0)
   const totalInd = drug.policies.reduce((s, p) => s + p.indications.length, 0)
@@ -64,11 +69,17 @@ export function DrugDetailView({ drug, onBack, changes }: DrugDetailViewProps) {
                     {drug.jCode}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full"
                     style={{ background: '#EBF4FA', color: '#2D6A90' }}>
                     {drug.drugClass}
                   </span>
+                  {benefitType && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full capitalize"
+                      style={{ background: benefitType === 'medical' ? '#FEF3C7' : '#F0FDF4', color: benefitType === 'medical' ? '#92400E' : '#166534' }}>
+                      {benefitType} benefit
+                    </span>
+                  )}
                   {drug.changeCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full"
                       style={{ background: '#FEE2E2', color: '#DC2626' }}>
@@ -93,6 +104,31 @@ export function DrugDetailView({ drug, onBack, changes }: DrugDetailViewProps) {
               ))}
             </div>
           </div>
+
+          {/* Limitations of use — collapsible warning */}
+          {limitationsOfUse && (
+            <div className="mb-4 rounded-lg overflow-hidden" style={{ border: '1px solid #FCD34D', background: '#FFFBEB' }}>
+              <button
+                onClick={() => setLimitationsOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left"
+              >
+                <span className="text-[11px] font-semibold" style={{ color: '#92400E' }}>
+                  Limitations of use
+                </span>
+                <ChevronDown size={13} style={{
+                  color: '#92400E',
+                  transform: limitationsOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.12s',
+                  flexShrink: 0,
+                }} />
+              </button>
+              {limitationsOpen && (
+                <p className="px-4 pb-3 text-xs leading-relaxed" style={{ color: '#78350F' }}>
+                  {limitationsOfUse}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Trend strip — always visible, above tabs */}
           <div className="flex gap-6 pb-5 border-b mb-0" style={{ borderBottomColor: '#E2E7EF' }}>

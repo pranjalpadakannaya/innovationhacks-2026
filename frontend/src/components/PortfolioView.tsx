@@ -75,15 +75,32 @@ function formatChangeDate(date: string) {
   }).format(new Date(date))
 }
 
-function summarizeDirection(change: ChangeEntry) {
-  const text = `${change.change_type} ${change.summary}`.toLowerCase()
+const _HIGH_BURDEN_TYPES = new Set([
+  'step_therapy', 'combination_restriction', 'disease_severity',
+  'lab_value', 'prior_therapy', 'line_of_therapy',
+])
 
-  if (/(removed|waive|loosen|expanded|broader|without pa|no clinical criteria changes)/.test(text)) {
-    return 'Loosening'
+function summarizeDirection(change: ChangeEntry): string {
+  const { change_type, criterion_type, before_text, after_text } = change
+
+  if (change_type === 'ADDED_STEP_THERAPY')  return 'Tightening'
+  if (change_type === 'ADDED_INDICATION')    return 'Coverage expansion'
+  if (change_type === 'REMOVED_INDICATION')  return 'Coverage loss'
+
+  if (change_type === 'ADDED_CRITERION') {
+    return criterion_type && _HIGH_BURDEN_TYPES.has(criterion_type) ? 'Tightening' : 'Neutral'
   }
-
-  if (/(added|stricter|reduced|must|required|step therapy|threshold)/.test(text)) {
-    return 'Tightening'
+  if (change_type === 'REMOVED_CRITERION') {
+    return criterion_type && _HIGH_BURDEN_TYPES.has(criterion_type) ? 'Loosening' : 'Neutral'
+  }
+  if (change_type === 'MODIFIED_THRESHOLD') {
+    if (before_text && after_text) {
+      return Number(after_text) < Number(before_text) ? 'Tightening' : 'Loosening'
+    }
+    return 'Material update'
+  }
+  if (change_type === 'MODIFIED_PA_REQUIRED') {
+    return change.summary.includes('added') ? 'Tightening' : 'Loosening'
   }
 
   return 'Material update'

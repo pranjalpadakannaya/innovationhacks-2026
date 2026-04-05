@@ -40,8 +40,8 @@ export function CriteriaBreakdown({ policies }: CriteriaBreakdownProps) {
   // Grouped bar chart data — 4 dimensions × 3 payers
   const barData = [
     { label: 'PA Burden', key: 'pa' },
-    { label: 'Step Therapy', key: 'stepTherapy' },
-    { label: 'Criteria Volume', key: 'criteriaVolume' },
+    { label: 'Criteria Type', key: 'criteriaType' },
+    { label: 'Auth Duration', key: 'duration' },
     { label: 'Exclusions', key: 'exclusions' },
   ].map(dim => {
     const entry: Record<string, string | number> = { label: dim.label }

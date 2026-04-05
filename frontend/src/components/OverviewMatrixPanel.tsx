@@ -13,33 +13,48 @@ interface OverviewMatrixPanelProps {
   portfolio: DrugPortfolioEntry[]
 }
 
-type MatrixColumn = 'coverage' | 'pa' | 'stepTherapy' | 'restriction' | 'confidence' | 'updated'
+type MatrixColumn = 'coverage' | 'pa' | 'stepTherapy' | 'criterionTypes' | 'duration' | 'confidence' | 'updated'
 
 interface MatrixRow {
   payer: string
   coverage: string
   pa: string
   stepTherapy: string
-  restriction: string
+  criterionTypes: string[]
+  duration: string
   confidence: string
   updated: string
 }
 
-const DEFAULT_COLUMNS: MatrixColumn[] = ['coverage', 'pa', 'stepTherapy', 'restriction', 'confidence', 'updated']
+const DEFAULT_COLUMNS: MatrixColumn[] = ['coverage', 'pa', 'stepTherapy', 'criterionTypes', 'duration', 'confidence', 'updated']
 
 const columnLabels: Record<MatrixColumn, string> = {
   coverage: 'Coverage',
   pa: 'PA',
   stepTherapy: 'Step Therapy',
-  restriction: 'Key Restriction',
+  criterionTypes: 'Criterion Types',
+  duration: 'Auth Duration',
   confidence: 'Confidence',
   updated: 'Updated',
 }
 
 const coverageStyles: Record<string, { bg: string; text: string }> = {
-  Covered: { bg: '#DDF4E5', text: '#18794E' },
-  Conditional: { bg: '#FEF0DB', text: '#C4660A' },
-  'No Policy': { bg: '#ECEDE9', text: '#5F6B66' },
+  'PA Required': { bg: '#FEF0DB', text: '#C4660A' },
+  'No PA':       { bg: '#DDF4E5', text: '#18794E' },
+  'No Policy':   { bg: '#ECEDE9', text: '#5F6B66' },
+}
+
+const criterionChipColors: Record<string, { bg: string; text: string }> = {
+  step_therapy:            { bg: '#FEF3C7', text: '#92400E' },
+  combination_restriction: { bg: '#EDE9FE', text: '#5B21B6' },
+  prior_therapy:           { bg: '#FEF9C3', text: '#713F12' },
+  line_of_therapy:         { bg: '#EBF4FA', text: '#2D6A90' },
+  disease_severity:        { bg: '#FEE2E2', text: '#B91C1C' },
+  lab_value:               { bg: '#D0F4F1', text: '#0A6B62' },
+  diagnosis:               { bg: '#F1F5F9', text: '#475569' },
+  prescriber:              { bg: '#DCFCE7', text: '#166534' },
+  clinical_response:       { bg: '#CCFBF1', text: '#0F766E' },
+  other:                   { bg: '#F8FAFC', text: '#64748B' },
 }
 
 function formatDate(date?: string) {
@@ -57,17 +72,9 @@ function normalizeConfidence(score: number) {
   return 'Low'
 }
 
-function summarizeRestriction(criteria: string[]) {
-  if (criteria.length === 0) return 'No explicit restriction'
-  return criteria[0]
-}
-
 function buildMatrixRows(drug: DrugPortfolioEntry, indicationFilter: string): MatrixRow[] {
   return drug.policies.map(policy => {
     const indication = policy.indications.find(item => item.name === indicationFilter)
-    const allCriteria = policy.indications.flatMap(item =>
-      item.initial_authorization.criteria.map(criterion => criterion.description)
-    )
 
     if (!indication) {
       return {
@@ -75,24 +82,27 @@ function buildMatrixRows(drug: DrugPortfolioEntry, indicationFilter: string): Ma
         coverage: 'No Policy',
         pa: 'Unknown',
         stepTherapy: 'Unknown',
-        restriction: policy.exclusions?.[0]?.description ?? summarizeRestriction(allCriteria),
+        criterionTypes: [],
+        duration: '—',
         confidence: normalizeConfidence(policy.confidence_scores.overall),
         updated: formatDate(policy.payer.revision_date ?? policy.payer.effective_date),
       }
     }
 
-    const restriction = summarizeRestriction(
-      indication.initial_authorization.criteria.map(criterion => criterion.description)
-    )
+    const uniqueTypes = Array.from(new Set(
+      indication.initial_authorization.criteria.map(c => c.criterion_type)
+    ))
 
-    const hasCriteria = indication.initial_authorization.criteria.length > 0 || indication.step_therapy_required
+    const dur = indication.initial_authorization.authorization_duration_months
+    const duration = dur != null ? `${dur}mo` : '—'
 
     return {
       payer: policy.payer.name,
-      coverage: indication.pa_required || hasCriteria ? 'Covered' : 'Conditional',
+      coverage: indication.pa_required ? 'PA Required' : 'No PA',
       pa: indication.pa_required ? 'Required' : 'Not required',
       stepTherapy: indication.step_therapy_required ? 'Yes' : 'No',
-      restriction,
+      criterionTypes: uniqueTypes,
+      duration,
       confidence: normalizeConfidence(policy.confidence_scores.overall),
       updated: formatDate(policy.payer.revision_date ?? policy.payer.effective_date),
     }
@@ -132,25 +142,58 @@ function MatrixTable({
               <tr key={row.payer} className="border-b border-[#F0ECE4] last:border-b-0">
                 <td className="px-6 py-4 text-sm font-medium text-[#27404A]">{row.payer}</td>
                 {visibleColumns.map(column => {
-                  const value = row[column]
-
                   if (column === 'coverage') {
-                    const style = coverageStyles[value] ?? coverageStyles.Covered
+                    const style = coverageStyles[row.coverage] ?? coverageStyles['No Policy']
                     return (
-                      <td key={column} className="px-4 py-4 text-sm text-[#27404A]">
-                        <span
-                          className="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-                          style={{ background: style.bg, color: style.text }}
-                        >
-                          {value}
+                      <td key={column} className="px-4 py-4 text-sm">
+                        <span className="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                          style={{ background: style.bg, color: style.text }}>
+                          {row.coverage}
                         </span>
                       </td>
                     )
                   }
 
+                  if (column === 'stepTherapy') {
+                    const isYes = row.stepTherapy === 'Yes'
+                    return (
+                      <td key={column} className="px-4 py-4 text-sm">
+                        <span className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                          style={isYes
+                            ? { background: '#FEE2E2', color: '#B91C1C' }
+                            : { background: '#F1F5F9', color: '#64748B' }}>
+                          {row.stepTherapy}
+                        </span>
+                      </td>
+                    )
+                  }
+
+                  if (column === 'criterionTypes') {
+                    return (
+                      <td key={column} className="px-4 py-4">
+                        {row.criterionTypes.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {row.criterionTypes.map(type => {
+                              const chip = criterionChipColors[type] ?? criterionChipColors.other
+                              return (
+                                <span key={type} className="text-[10px] font-medium px-1.5 py-0.5 rounded whitespace-nowrap"
+                                  style={{ background: chip.bg, color: chip.text }}>
+                                  {type.replace(/_/g, ' ')}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-xs" style={{ color: '#C0CDD9' }}>—</span>
+                        )}
+                      </td>
+                    )
+                  }
+
+                  const value = row[column as 'pa' | 'duration' | 'confidence' | 'updated']
                   return (
-                    <td key={column} className="max-w-[220px] px-4 py-4 text-sm text-[#36515C]">
-                      <span className={column === 'restriction' ? 'line-clamp-2' : undefined}>{value}</span>
+                    <td key={column} className="px-4 py-4 text-sm text-[#36515C]">
+                      <span>{value}</span>
                     </td>
                   )
                 })}

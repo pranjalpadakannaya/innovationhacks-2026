@@ -208,13 +208,17 @@ export function ComparisonMatrix({ policies }: ComparisonMatrixProps) {
                             style={{ borderLeftColor: '#D0D9E4' }}>
                             {ind ? (
                               <div className="space-y-2">
-                                {/* Auth duration */}
-                                {ind.initial_authorization.authorization_duration_months && (
+                                {/* Initial auth */}
+                                {ind.initial_authorization.authorization_duration_months != null && (
                                   <p className="text-[11px]" style={{ color: '#6B7583' }}>
-                                    Auth: <span className="font-semibold">{ind.initial_authorization.authorization_duration_months}mo</span>
+                                    Initial auth: <span className="font-semibold">{ind.initial_authorization.authorization_duration_months}mo</span>
                                   </p>
                                 )}
-                                {/* Criteria list */}
+                                {ind.initial_authorization.required_prescriber_specialties && ind.initial_authorization.required_prescriber_specialties.length > 0 && (
+                                  <p className="text-[11px]" style={{ color: '#6B7583' }}>
+                                    Prescriber: <span className="font-semibold">{ind.initial_authorization.required_prescriber_specialties.join(', ')}</span>
+                                  </p>
+                                )}
                                 {ind.initial_authorization.criteria.length > 0 ? (
                                   <ul className="space-y-1.5">
                                     {ind.initial_authorization.criteria.map((c, j) => {
@@ -233,6 +237,40 @@ export function ComparisonMatrix({ policies }: ComparisonMatrixProps) {
                                 ) : (
                                   <p className="text-[11px]" style={{ color: '#9AA3AF' }}>No specific criteria</p>
                                 )}
+
+                                {/* Reauthorization */}
+                                {ind.reauthorization && (
+                                  <div className="mt-2 pt-2" style={{ borderTop: '1px dashed #D0D9E4' }}>
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                                      style={{ color: '#4361BB' }}>
+                                      Reauthorization
+                                      {ind.reauthorization.authorization_duration_months != null && (
+                                        <span className="normal-case font-normal ml-1">
+                                          · {ind.reauthorization.authorization_duration_months}mo
+                                        </span>
+                                      )}
+                                    </p>
+                                    {ind.reauthorization.criteria.length > 0 ? (
+                                      <ul className="space-y-1.5">
+                                        {ind.reauthorization.criteria.map((c, j) => {
+                                          const colors = criterionColors[c.criterion_type] ?? criterionColors.other
+                                          return (
+                                            <li key={j} className="flex items-start gap-1.5 text-[11px]">
+                                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+                                                style={{ background: colors.bg, color: colors.text }}>
+                                                {c.criterion_type.replace(/_/g, ' ')}
+                                              </span>
+                                              <span style={{ color: '#475569' }}>{c.description}</span>
+                                            </li>
+                                          )
+                                        })}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-[11px]" style={{ color: '#9AA3AF' }}>No separate reauth criteria</p>
+                                    )}
+                                  </div>
+                                )}
+
                                 <ProvenanceChip payer={p.payer.name} policyTitle={p.payer.policy_title} />
                               </div>
                             ) : (

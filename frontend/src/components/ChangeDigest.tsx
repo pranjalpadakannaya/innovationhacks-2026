@@ -18,6 +18,21 @@ const changeTypeLabels: Record<string, string> = {
   MODIFIED_THRESHOLD:   'Threshold changed',
   MODIFIED_WORDING:     'Wording updated',
   MODIFIED_PA_REQUIRED: 'PA status changed',
+  ADDED_INDICATION:     'Indication added',
+  REMOVED_INDICATION:   'Indication removed',
+}
+
+const criterionChipColors: Record<string, { bg: string; text: string }> = {
+  step_therapy:            { bg: '#FEF3C7', text: '#92400E' },
+  combination_restriction: { bg: '#EDE9FE', text: '#5B21B6' },
+  prior_therapy:           { bg: '#FEF9C3', text: '#713F12' },
+  line_of_therapy:         { bg: '#EBF4FA', text: '#2D6A90' },
+  disease_severity:        { bg: '#FEE2E2', text: '#B91C1C' },
+  lab_value:               { bg: '#D0F4F1', text: '#0A6B62' },
+  diagnosis:               { bg: '#F1F5F9', text: '#475569' },
+  prescriber:              { bg: '#DCFCE7', text: '#166534' },
+  clinical_response:       { bg: '#CCFBF1', text: '#0F766E' },
+  other:                   { bg: '#F8FAFC', text: '#64748B' },
 }
 
 export function ChangeDigest({ changes }: ChangeDigestProps) {
@@ -96,8 +111,34 @@ export function ChangeDigest({ changes }: ChangeDigestProps) {
                         style={{ background: '#F5F6F8', color: '#6B7583' }}>
                         {changeTypeLabels[change.change_type] ?? change.change_type}
                       </span>
+                      {change.criterion_type && (() => {
+                        const chip = criterionChipColors[change.criterion_type] ?? criterionChipColors.other
+                        return (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                            style={{ background: chip.bg, color: chip.text }}>
+                            {change.criterion_type.replace(/_/g, ' ')}
+                          </span>
+                        )
+                      })()}
+                      {change.auth_phase === 'reauth' && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                          style={{ background: '#F0F4FF', color: '#4361BB' }}>
+                          reauth
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: '#334155' }}>{change.summary}</p>
+                    {change.before_text && change.after_text && (
+                      <div className="flex items-center gap-2 mt-1.5 text-[11px]">
+                        <span className="px-1.5 py-0.5 rounded font-mono" style={{ background: '#FEE2E2', color: '#991B1B' }}>
+                          {change.before_text}mo
+                        </span>
+                        <span style={{ color: '#C0CDD9' }}>→</span>
+                        <span className="px-1.5 py-0.5 rounded font-mono" style={{ background: '#DCFCE7', color: '#166534' }}>
+                          {change.after_text}mo
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="text-[11px] flex-shrink-0 font-mono tabular-nums" style={{ color: '#9AA3AF' }}>
                     {change.date}
