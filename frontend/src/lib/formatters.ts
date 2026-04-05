@@ -1,16 +1,26 @@
 // Shared formatting utilities — single source of truth for labels, colors, abbreviations
 
+export function canonicalizePayerName(name: string): string {
+  const normalized = name.trim()
+  const aliases: Record<string, string> = {
+    UnitedHealth: 'UnitedHealthcare',
+    UHC: 'UnitedHealthcare',
+    'Blue Cross Blue Shield of North Carolina (BCBS NC)': 'Blue Cross NC',
+  }
+  return aliases[normalized] ?? normalized
+}
+
 export function formatPayerName(name: string): string {
   const abbrevs: Record<string, string> = {
     'Blue Cross NC': 'BCNC',
-    'UnitedHealth': 'UHC',
     'UnitedHealthcare': 'UHC',
     'Florida Blue': 'FL Blue',
     'Cigna': 'Cigna',
     'Aetna': 'Aetna',
     'Priority Health': 'PH',
   }
-  return abbrevs[name] ?? name
+  const canonicalName = canonicalizePayerName(name)
+  return abbrevs[canonicalName] ?? canonicalName
 }
 
 export const CRITERION_LABELS: Record<string, string> = {
