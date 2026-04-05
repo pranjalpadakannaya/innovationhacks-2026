@@ -23,10 +23,14 @@
     "route_of_administration": null,
     "limitations_of_use": "Daxxify (daxibotulinumtoxinA-lanm) is typically excluded from coverage. Coverage reviews may be in place if required by law or the benefit plan. Coverage for Dysport, Xeomin, Botox, Myobloc is contingent on criteria in the General Requirements and Diagnosis-Specific Requirements sections.",
     "enrichment": {
-      "rxnorm_cui": null,
+      "rxnorm_cui": "2612452",
+      "rxnorm_name": "daxibotulinumtoxinA-lanm",
+      "rxnorm_tty": "PIN",
+      "rxnorm_match_status": "approximate",
+      "rxnorm_query": "onabotulinumtoxinA / abobotulinumtoxinA / incobotulinumtoxinA / rimabotulinumtoxinB / daxibotulinumtoxinA-lanm",
       "loinc_codes": [],
       "validated_icd10_codes": [],
-      "needs_rxnorm_lookup": true,
+      "needs_rxnorm_lookup": false,
       "needs_loinc_linking": false,
       "needs_icd10_validation": false
     }
@@ -72,6 +76,10 @@
       "reauthorization": null,
       "enrichment": {
         "rxnorm_cui": null,
+        "rxnorm_name": null,
+        "rxnorm_tty": null,
+        "rxnorm_match_status": null,
+        "rxnorm_query": null,
         "loinc_codes": [],
         "validated_icd10_codes": [],
         "needs_rxnorm_lookup": false,
@@ -129,6 +137,10 @@
       },
       "enrichment": {
         "rxnorm_cui": null,
+        "rxnorm_name": null,
+        "rxnorm_tty": null,
+        "rxnorm_match_status": null,
+        "rxnorm_query": null,
         "loinc_codes": [],
         "validated_icd10_codes": [],
         "needs_rxnorm_lookup": false,
@@ -186,6 +198,10 @@
       },
       "enrichment": {
         "rxnorm_cui": null,
+        "rxnorm_name": null,
+        "rxnorm_tty": null,
+        "rxnorm_match_status": null,
+        "rxnorm_query": null,
         "loinc_codes": [],
         "validated_icd10_codes": [],
         "needs_rxnorm_lookup": false,
@@ -243,6 +259,10 @@
       },
       "enrichment": {
         "rxnorm_cui": null,
+        "rxnorm_name": null,
+        "rxnorm_tty": null,
+        "rxnorm_match_status": null,
+        "rxnorm_query": null,
         "loinc_codes": [],
         "validated_icd10_codes": [],
         "needs_rxnorm_lookup": false,
@@ -300,6 +320,10 @@
       },
       "enrichment": {
         "rxnorm_cui": null,
+        "rxnorm_name": null,
+        "rxnorm_tty": null,
+        "rxnorm_match_status": null,
+        "rxnorm_query": null,
         "loinc_codes": [],
         "validated_icd10_codes": [],
         "needs_rxnorm_lookup": false,
