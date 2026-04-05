@@ -101,7 +101,7 @@ function preferLiveChanges(changes: ChangeEntry[]) {
 function normalizePolicyRecord(input: PolicySearchResult['policy_record']): PolicyRecord | null {
   if (!input) return null
 
-  const raw = input as Record<string, unknown>
+  const raw = input as unknown as Record<string, unknown>
   const payer = (raw.payer ?? {}) as Record<string, unknown>
   const drug = (raw.drug ?? {}) as Record<string, unknown>
   const indications = Array.isArray(raw.indications) ? raw.indications : null
